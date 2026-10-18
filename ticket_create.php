@@ -109,15 +109,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($contact_phone === '') {
-        $errors[] = '請填寫聯絡電話/分機號碼。';
-    } elseif (preg_match('/^.{1,150}$/us', $contact_phone) !== 1) {
-        $errors[] = '聯絡電話/分機號碼不可超過 150 個字，且不可包含換行。';
+        $errors[] = '請填寫聯絡電話／分機號碼。';
+    } elseif (preg_match('/^.{1,30}$/us', $contact_phone) !== 1) {
+        $errors[] = '聯絡電話／分機號碼不可超過 30 個字，且不可包含換行。';
     }
 
     if ($contact_email === '') {
         $errors[] = '請填寫電子郵件。';
-    } elseif (preg_match('/^.{1,150}$/us', $contact_email) !== 1) {
-        $errors[] = '電子郵件不可超過 150 個字，且不可包含換行。';
+    } elseif (preg_match('/^.{1,60}$/us', $contact_email) !== 1) {
+        $errors[] = '電子郵件不可超過 60 個字，且不可包含換行。';
+    } elseif (
+        filter_var($contact_email, FILTER_VALIDATE_EMAIL) === false
+    ) {
+        $errors[] = '請填寫有效的電子郵件地址。';
     }
 
     if ($errors === []) {
@@ -129,14 +133,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     title,
                     category,
                     description,
-<<<<<<< HEAD
                     requested_completion_date,
                     customer_name,
+                    contact_name,
                     contact_phone,
-                    contact_email           
-=======
-                    requested_completion_date
->>>>>>> b7b262f389bd9b7ef9a94722e965cf7968dd5b58
+                    contact_email
                 )
                 VALUES (
                     :title,
@@ -144,6 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     :description,
                     :requested_completion_date,
                     :customer_name,
+                    :contact_name,
                     :contact_phone,
                     :contact_email
                 )
@@ -157,8 +159,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'description' => $description,
                 'requested_completion_date' => $requestedCompletionDate,
                 'customer_name' => $customer_name,
+                'contact_name' => $contact_name,
                 'contact_phone' => $contact_phone,
-                'contact_email' => $contact_email
+                'contact_email' => $contact_email,
             ]);
 
             $_SESSION['success_ticket_id'] = $pdo->lastInsertId();
@@ -379,43 +382,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="field">
-            <label for="description">聯絡資訊</label>
+            <label for="customer_name">報修單位或部門</label>
 
             <input
-                type="text"
-                id="customer_name"
-                name="customer_name"
-                maxlength="30"
-                placeholder="請填寫報修單位或部門。"
-                required
-            ><?= escape($customer_name) ?></input>
-            
-            <input
-                type="text"
-                id="contact_name"
-                name="contact_name"
-                maxlength="30"
-                placeholder="請填寫聯繫人姓名。"
-                required
-            ><?= escape($contact_name) ?></input>
+            type="text"
+            id="customer_name"
+            name="customer_name"
+            maxlength="30"
+            value="<?= escape($customer_name) ?>"
+            placeholder="例如：資訊部"
+            required
+            >
+        </div>
+
+        <div class="field">
+            <label for="contact_name">聯繫人姓名</label>
 
             <input
-                type="text"
+            type="text"
+            id="contact_name"
+            name="contact_name"
+            maxlength="30"
+            value="<?= escape($contact_name) ?>"
+            placeholder="請填寫聯繫人姓名"
+            required
+            >
+        </div>
+
+        <div class="field">
+            <label for="contact_phone">聯絡電話／分機號碼</label>
+
+            <input
+                type="tel"
                 id="contact_phone"
                 name="contact_phone"
                 maxlength="30"
-                placeholder="請填寫聯絡電話/分機號碼。"
+                value="<?= escape($contact_phone) ?>"
+                placeholder="例如：02-12345678 分機 123"
                 required
-            ><?= escape($contact_phone) ?></input>
+            >
+        </div>
+
+        <div class="field">
+            <label for="contact_email">電子郵件</label>
 
             <input
                 type="email"
                 id="contact_email"
                 name="contact_email"
                 maxlength="60"
-                placeholder="請填寫電子郵件。"
+                value="<?= escape($contact_email) ?>"
+                placeholder="例如：test@example.com"
                 required
-            ><?= escape($contact_email) ?></input>
+            >
         </div>
 
             <button type="submit">送出報修單</button>

@@ -30,6 +30,7 @@ $categories = [
 $title = '';
 $category = 'other';
 $description = '';
+$requestedCompletionDate = '';
 $errors = [];
 
 $successTicketId = $_SESSION['success_ticket_id'] ?? null;
@@ -44,6 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $category = postString('category');
     $description = postString('description');
     $submittedToken = postString('csrf_token');
+    $requestedCompletionDate = postString('requested_completion_date');
 
     if (
         $submittedToken === '' ||
@@ -67,6 +69,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (preg_match('/^.{1,5000}$/us', $description) !== 1) {
         $errors[] = '問題描述不可超過 5,000 個字。';
     }
+    
+    //日期填寫
+    if ($requestedCompletionDate === '') {
+        $errors[] = '請填寫客戶期望完成日期。';
+    } else {
+        $date = DateTimeImmutable::createFromFormat(
+            '!Y-m-d',
+            $requestedCompletionDate
+        );
+
+        if (
+            $date === false ||
+            $date->format('Y-m-d') !== $requestedCompletionDate
+        ) {
+            $errors[] = '請填寫有效的客戶期望完成日期。';
+        }
+    }
 
     if ($errors === []) {
         require __DIR__ . '/db.php';
@@ -76,12 +95,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 INSERT INTO tickets (
                     title,
                     category,
-                    description
+                    description,
+                    requested_completion_date
                 )
                 VALUES (
                     :title,
                     :category,
-                    :description
+                    :description,
+                    :requested_completion_date
                 )
             ';
 
@@ -91,6 +112,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'title' => $title,
                 'category' => $category,
                 'description' => $description,
+                'requested_completion_date' => $requestedCompletionDate,
             ]);
 
             $_SESSION['success_ticket_id'] = $pdo->lastInsertId();
@@ -292,8 +314,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <small class="hint">最多 5,000 個字。</small>
         </div>
 
-        <button type="submit">送出報修單</button>
-    </form>
+        <div class="field">
+        <label for="requested_completion_date">
+            客戶期望完成日期
+        </label>
+
+        <input
+            type="date"
+            id="requested_completion_date"
+            name="requested_completion_date"
+            value="<?= escape($requestedCompletionDate) ?>"
+            required
+        >
+
+            <small class="hint">
+                請填寫希望完成的日期，實際處理時程仍待確認。
+            </small>
+        </div>
+
+            <button type="submit">送出報修單</button>
+        </form>
 </main>
 </body>
 </html>

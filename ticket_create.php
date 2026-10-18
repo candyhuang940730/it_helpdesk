@@ -31,14 +31,11 @@ $title = '';
 $category = 'other';
 $description = '';
 $requestedCompletionDate = '';
-<<<<<<< HEAD
 $customer_name = '';
 $contact_name = '';
 $contact_phone = '';
 $contact_email = '';
 
-=======
->>>>>>> b7b262f389bd9b7ef9a94722e965cf7968dd5b58
 $errors = [];
 
 $successTicketId = $_SESSION['success_ticket_id'] ?? null;
@@ -54,13 +51,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $description = postString('description');
     $submittedToken = postString('csrf_token');
     $requestedCompletionDate = postString('requested_completion_date');
-<<<<<<< HEAD
     $customer_name = postString('customer_name');
     $contact_name = postString('contact_name');
     $contact_phone = postString('contact_phone');
     $contact_email = postString('contact_email');
-=======
->>>>>>> b7b262f389bd9b7ef9a94722e965cf7968dd5b58
 
     if (
         $submittedToken === '' ||
@@ -101,7 +95,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $errors[] = '請填寫有效的客戶期望完成日期。';
         }
     }
-<<<<<<< HEAD
 
     if ($customer_name === '') {
         $errors[] = '請填寫報修單位或部門。';
@@ -126,8 +119,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif (preg_match('/^.{1,150}$/us', $contact_email) !== 1) {
         $errors[] = '電子郵件不可超過 150 個字，且不可包含換行。';
     }
-=======
->>>>>>> b7b262f389bd9b7ef9a94722e965cf7968dd5b58
 
     if ($errors === []) {
         require __DIR__ . '/db.php';
@@ -151,14 +142,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     :title,
                     :category,
                     :description,
-<<<<<<< HEAD
                     :requested_completion_date,
                     :customer_name,
                     :contact_phone,
                     :contact_email
-=======
-                    :requested_completion_date
->>>>>>> b7b262f389bd9b7ef9a94722e965cf7968dd5b58
                 )
             ';
 
@@ -169,12 +156,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'category' => $category,
                 'description' => $description,
                 'requested_completion_date' => $requestedCompletionDate,
-<<<<<<< HEAD
                 'customer_name' => $customer_name,
                 'contact_phone' => $contact_phone,
                 'contact_email' => $contact_email
-=======
->>>>>>> b7b262f389bd9b7ef9a94722e965cf7968dd5b58
             ]);
 
             $_SESSION['success_ticket_id'] = $pdo->lastInsertId();
@@ -394,7 +378,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </small>
         </div>
 
-<<<<<<< HEAD
         <div class="field">
             <label for="description">聯絡資訊</label>
 
@@ -435,8 +418,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ><?= escape($contact_email) ?></input>
         </div>
 
-=======
->>>>>>> b7b262f389bd9b7ef9a94722e965cf7968dd5b58
             <button type="submit">送出報修單</button>
         </form>
 </main>

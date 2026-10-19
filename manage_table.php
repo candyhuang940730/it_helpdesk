@@ -56,6 +56,13 @@ $loadFailed = false;
 $submittedTicketId = null;
 $submittedTicketType = '';
 
+$userId = $_SESSION['user_id'] ?? null;
+
+if (!is_int($userId) || $userId < 1) {
+    header('Location: login.php', true, 302);
+    exit;
+}
+
 $successMessage = $_SESSION['manage_success'] ?? null;
 unset($_SESSION['manage_success']);
 
@@ -372,6 +379,11 @@ try {
             background: #edf2f7;
             white-space: nowrap;
         }
+        
+        .badge-completed {
+            color: #185c35;
+            background: #e7f6ec;
+        }
 
         .unclassified {
             color: #8a5a00;
@@ -509,7 +521,9 @@ try {
                         </td>
 
                         <td>
-                            <span class="badge">
+                            <span class="badge <?= $status === 'completed'
+                                    ? 'badge-completed'
+                                    : '' ?>">
                                 <?= escape($statusLabel) ?>
                             </span>
                         </td>

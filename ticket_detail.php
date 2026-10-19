@@ -54,8 +54,8 @@ $engineerId = positiveInteger(
 );
 
 if ($engineerId === null) {
-    http_response_code(401);
-    exit('請先登入工程師帳號，再使用案件管理功能。');
+    header('Location: login.php', true, 302);
+    exit;
 }
 
 /*
@@ -356,18 +356,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 try {
     $statement = $pdo->prepare(
         'SELECT
-            log_id,
-            engineer_id,
-            old_ticket_type,
-            new_ticket_type,
-            old_status,
-            new_status,
-            work_content,
-            work_minutes,
-            created_at
-         FROM ticket_work_logs
-         WHERE ticket_id = :ticket_id
-         ORDER BY created_at DESC, log_id DESC'
+            l.log_id,
+            l.engineer_id,
+            u.name AS engineer_name,
+            l.old_ticket_type,
+            l.new_ticket_type,
+            l.old_status,
+            l.new_status,
+            l.work_content,
+            l.work_minutes,
+            l.created_at
+        FROM ticket_work_logs AS l
+        LEFT JOIN users AS u
+            ON u.user_id = l.engineer_id
+        WHERE l.ticket_id = :ticket_id
+        ORDER BY l.created_at DESC, l.log_id DESC'
     );
 
     $statement->execute([
@@ -821,7 +824,10 @@ $categoryLabel = $categories[$ticket['category']]
                             <?= escape(
                                 (string) $log['created_at']
                             ) ?>
-                            ｜工程師 #<?= (int) $log['engineer_id'] ?>
+                            ｜工程師 #<?= escape(
+                                $log['engineer_name']
+                                    ?? 'ID: ' . (int) $log['engineer_id']
+                            ) ?>
                             ｜本次 <?= (int) $log['work_minutes'] ?> 分鐘
                         </p>
 

@@ -432,6 +432,7 @@ try {
 
             <thead>
                 <tr>
+                    <th scope="col">操作</th>
                     <th scope="col">編號</th>
                     <th scope="col">案件標題</th>
                     <th scope="col">問題類別</th>
@@ -446,13 +447,13 @@ try {
             <tbody>
             <?php if ($loadFailed): ?>
                 <tr>
-                    <td colspan="8" class="empty">
+                    <td colspan="9" class="empty">
                         無法載入案件列表。
                     </td>
                 </tr>
             <?php elseif ($tickets === []): ?>
                 <tr>
-                    <td colspan="8" class="empty">
+                    <td colspan="9" class="empty">
                         目前沒有報修案件。
                     </td>
                 </tr>
@@ -601,6 +602,12 @@ try {
                             <?= escape(
                                 (string) $ticket['created_at']
                             ) ?>
+                        </td>
+
+                        <td class="nowrap">
+                            <a href="ticket_detail.php?ticket_id=<?= $ticketId ?>">
+                                查看／處理
+                            </a>
                         </td>
                     </tr>
                 <?php endforeach; ?>

@@ -116,6 +116,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors[] = '姓名不可超過 50 個字，且不可包含換行。';
     }
 
+    $allowedEmailDomains = [
+        'example.com',
+    ];
+
     if ($email === '') {
         $errors[] = '請填寫 Email。';
     } elseif (
@@ -123,6 +127,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         filter_var($email, FILTER_VALIDATE_EMAIL) === false
     ) {
         $errors[] = '請填寫有效的 Email。';
+    } else {
+        // 從最後一個 @ 取得網域。
+        $atPosition = strrpos($email, '@');
+
+        $localPart = substr($email, 0, $atPosition);
+        $emailDomain = strtolower(
+            substr($email, $atPosition + 1)
+        );
+
+        // 僅將網域轉為小寫，保留 @ 前面的原始內容。
+        $email = $localPart . '@' . $emailDomain;
+
+        if (
+            !in_array(
+                $emailDomain,
+                $allowedEmailDomains,
+                true
+            )
+        ) {
+            $errors[] = '請使用指定公司／學校的 Email 註冊。';
+        }
     }
 
     /*

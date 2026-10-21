@@ -38,6 +38,9 @@ $contact_email = '';
 
 $errors = [];
 
+$warnings = $_SESSION['ticket_warnings'] ?? [];
+unset($_SESSION['ticket_warnings']);
+
 $successTicketId = $_SESSION['success_ticket_id'] ?? null;
 unset($_SESSION['success_ticket_id']);
 
@@ -110,18 +113,63 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($contact_phone === '') {
         $errors[] = '請填寫聯絡電話／分機號碼。';
-    } elseif (preg_match('/^.{1,30}$/us', $contact_phone) !== 1) {
-        $errors[] = '聯絡電話／分機號碼不可超過 30 個字，且不可包含換行。';
+    } else {
+        // 建立可以匹配市話與分機的正規表達式
+        $pattern = '/^(0[2-8]-?\d{7,8})(?:\s*(?:#|ext\.?|分機)\s*(\d{1,5}))?$/i';
+        
+        if (preg_match($pattern, $contact_phone) !== 1) {
+            $errors[] = '聯絡電話格式不正確（例如：02-12345678 或 02-12345678#123）。';
+        }
     }
 
     if ($contact_email === '') {
         $errors[] = '請填寫電子郵件。';
-    } elseif (preg_match('/^.{1,60}$/us', $contact_email) !== 1) {
-        $errors[] = '電子郵件不可超過 60 個字，且不可包含換行。';
     } elseif (
-        filter_var($contact_email, FILTER_VALIDATE_EMAIL) === false
+        strlen($contact_email) > 60 ||
+        filter_var(
+            $contact_email,
+            FILTER_VALIDATE_EMAIL
+        ) === false
     ) {
-        $errors[] = '請填寫有效的電子郵件地址。';
+        $errors[] = '請填寫有效的電子郵件，長度不可超過 60 位元組。';
+    } else {
+        $atPosition = strrpos($contact_email, '@');
+
+        $localPart = substr(
+            $contact_email,
+            0,
+            $atPosition
+        );
+
+        $emailDomain = strtolower(
+            substr($contact_email, $atPosition + 1)
+        );
+
+        // 保留 @ 前面的內容，只將網域轉成小寫。
+        $contact_email = $localPart . '@' . $emailDomain;
+
+        /*
+        * DNS 查詢使用完整網域名稱，
+        * 避免套用伺服器的本機搜尋網域。
+        */
+        $dnsName = $emailDomain . '.';
+
+        /*
+        * DNS 只作輔助檢查：
+        * 有 MX，或有可供郵件遞送回退使用的 A／AAAA。
+        * 這不代表該信箱一定存在或能收信。
+        */
+        $hasDnsRecord =
+            checkdnsrr($dnsName, 'MX') ||
+            checkdnsrr($dnsName, 'A') ||
+            checkdnsrr($dnsName, 'AAAA');
+
+        if (!$hasDnsRecord) {
+            $warnings[] =
+                '目前無法確認聯絡信箱網域的 DNS 紀錄，'
+                . '請再次確認 Email 是否有拼字錯誤。'
+                . '這不影響報修單送出。';
+        }
     }
 
     if ($errors === []) {
@@ -165,6 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             ]);
 
             $_SESSION['success_ticket_id'] = $pdo->lastInsertId();
+            $_SESSION['ticket_warnings'] = $warnings;
 
             $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
 
@@ -268,6 +317,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             background: #e7f6ec;
         }
 
+        .warning {
+            color: #7a5700;
+            background: #fff3cd;
+        }
+
+        .warning ul {
+            margin: 0;
+            padding-left: 22px;
+        }
+
         .error {
             color: #8f2020;
             background: #fdeaea;
@@ -300,6 +359,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             報修單已成功建立！
             案件編號：
             <?= escape((string) $successTicketId) ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($warnings !== []): ?>
+        <div class="message warning" role="status">
+            <ul>
+                <?php foreach ($warnings as $warning): ?>
+                    <li><?= escape($warning) ?></li>
+                <?php endforeach; ?>
+            </ul>
         </div>
     <?php endif; ?>
 
@@ -416,9 +485,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 type="tel"
                 id="contact_phone"
                 name="contact_phone"
-                maxlength="30"
+                maxlength="25"
                 value="<?= escape($contact_phone) ?>"
-                placeholder="例如：02-12345678 分機 123"
+                placeholder="例如：02-12345678#123"
                 required
             >
         </div>

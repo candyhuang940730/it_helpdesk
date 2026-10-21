@@ -19,13 +19,6 @@ function escape(string $value): string
     );
 }
 
-function postString(string $key): string
-{
-    $value = $_POST[$key] ?? '';
-
-    return is_string($value) ? trim($value) : '';
-}
-
 $ticketTypes = [
     'repair' => '報修',
     'maintenance' => '保養',
@@ -53,8 +46,6 @@ $errors = [];
 $tickets = [];
 $loadFailed = false;
 
-$submittedTicketId = null;
-$submittedTicketType = '';
 
 $userId = $_SESSION['user_id'] ?? null;
 
@@ -93,127 +84,34 @@ try {
 }
 
 /*
- * 處理單別修改
- */
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $submittedToken = postString('csrf_token');
-    $action = postString('action');
-
-    $ticketIdInput = postString('ticket_id');
-    $submittedTicketType = postString('ticket_type');
-
-    $validatedTicketId = filter_var(
-        $ticketIdInput,
-        FILTER_VALIDATE_INT,
-        ['options' => ['min_range' => 1]]
-    );
-
-    if ($validatedTicketId !== false) {
-        $submittedTicketId = (int) $validatedTicketId;
-    }
-
-    if (
-        $submittedToken === '' ||
-        !hash_equals(
-            $_SESSION['csrf_token'],
-            $submittedToken
-        )
-    ) {
-        $errors[] = '表單驗證失敗，請重新整理頁面後再試。';
-    }
-
-    if ($action !== 'update_ticket_type') {
-        $errors[] = '無效的操作。';
-    }
-
-    if ($submittedTicketId === null) {
-        $errors[] = '案件編號格式不正確。';
-    }
-
-    if (
-        !array_key_exists(
-            $submittedTicketType,
-            $ticketTypes
-        )
-    ) {
-        $errors[] = '請選擇有效的單別。';
-    }
-
-    if ($errors === []) {
-        try {
-            $pdo->beginTransaction();
-
-            // 鎖定這筆案件，確認案件存在。
-            $statement = $pdo->prepare(
-                'SELECT ticket_id
-                 FROM tickets
-                 WHERE ticket_id = :ticket_id
-                 FOR UPDATE'
-            );
-
-            $statement->execute([
-                'ticket_id' => $submittedTicketId,
-            ]);
-
-            $ticket = $statement->fetch();
-
-            if ($ticket === false) {
-                $pdo->rollBack();
-                $errors[] = '找不到這筆案件，可能已被刪除。';
-            } else {
-                $statement = $pdo->prepare(
-                    'UPDATE tickets
-                     SET ticket_type = :ticket_type
-                     WHERE ticket_id = :ticket_id'
-                );
-
-                $statement->execute([
-                    'ticket_type' => $submittedTicketType,
-                    'ticket_id' => $submittedTicketId,
-                ]);
-
-                $pdo->commit();
-
-                $_SESSION['manage_success'] = sprintf(
-                    '案件 #%d 的單別已儲存為「%s」。',
-                    $submittedTicketId,
-                    $ticketTypes[$submittedTicketType]
-                );
-
-                header(
-                    'Location: manage_table.php',
-                    true,
-                    303
-                );
-                exit;
-            }
-        } catch (PDOException $e) {
-            if ($pdo->inTransaction()) {
-                $pdo->rollBack();
-            }
-
-            error_log($e->getMessage());
-            $errors[] = '單別儲存失敗，請稍後再試。';
-        }
-    }
-}
-
-/*
  * 讀取最近 100 筆案件
  */
 try {
     $statement = $pdo->query(
         'SELECT
-            ticket_id,
-            title,
-            category,
-            status,
-            requested_completion_date,
-            ticket_type,
-            created_at
-         FROM tickets
-         ORDER BY created_at DESC, ticket_id DESC
-         LIMIT 100'
+            t.ticket_id,
+            t.title,
+            t.category,
+            t.status,
+            t.requested_completion_date,
+            t.ticket_type,
+            t.created_at,
+            latest_log.engineer_id AS last_engineer_id,
+            latest_log.created_at AS last_modified_at,
+            u.name AS last_engineer_name
+        FROM tickets AS t
+        LEFT JOIN ticket_work_logs AS latest_log
+            ON latest_log.log_id = (
+                SELECT l.log_id
+                FROM ticket_work_logs AS l
+                WHERE l.ticket_id = t.ticket_id
+                ORDER BY l.created_at DESC, l.log_id DESC
+                LIMIT 1
+            )
+        LEFT JOIN users AS u
+            ON u.user_id = latest_log.engineer_id
+        ORDER BY t.created_at DESC, t.ticket_id DESC
+        LIMIT 100'
     );
 
     $tickets = $statement->fetchAll();
@@ -408,8 +306,8 @@ try {
     <h1>案件管理</h1>
 
     <p class="intro">
-        客戶送單後，由工程師確認案件內容，
-        並設定為報修、保養或安裝。
+        查看報修案件、目前單別與最後修改工程師。
+        如需修改單別或填寫處理紀錄，請點選「查看／處理」。
     </p>
 
     <?php if (is_string($successMessage)): ?>
@@ -439,20 +337,20 @@ try {
     <div class="table-wrap">
         <table>
             <caption class="sr-only">
-                報修案件列表與單別設定
+                報修案件列表與最後修改工程師
             </caption>
 
             <thead>
                 <tr>
-                    <th scope="col">操作</th>
                     <th scope="col">編號</th>
                     <th scope="col">案件標題</th>
                     <th scope="col">問題類別</th>
                     <th scope="col">狀態</th>
                     <th scope="col">期望完成日期</th>
                     <th scope="col">目前單別</th>
-                    <th scope="col">設定單別</th>
+                    <th scope="col">最後修改工程師</th>
                     <th scope="col">建立時間</th>
+                    <th scope="col">操作</th>
                 </tr>
             </thead>
 
@@ -479,19 +377,6 @@ try {
                     $currentTypeLabel = $currentType === null
                         ? '未分類'
                         : ($ticketTypes[$currentType] ?? '未知單別');
-
-                    $selectedType = $currentType ?? '';
-
-                    // 驗證失敗時保留該列提交的有效選項。
-                    if (
-                        $submittedTicketId === $ticketId &&
-                        array_key_exists(
-                            $submittedTicketType,
-                            $ticketTypes
-                        )
-                    ) {
-                        $selectedType = $submittedTicketType;
-                    }
 
                     $category = (string) $ticket['category'];
                     $status = (string) $ticket['status'];
@@ -542,74 +427,28 @@ try {
                             </span>
                         </td>
 
-                        <td>
-                            <form
-                                action="manage_table.php"
-                                method="post"
-                                class="type-form"
-                            >
-                                <input
-                                    type="hidden"
-                                    name="csrf_token"
-                                    value="<?= escape(
-                                        $_SESSION['csrf_token']
-                                    ) ?>"
-                                >
+                        <td class="nowrap">
+                            <?php if ($ticket['last_engineer_id'] === null): ?>
+                                尚無修改紀錄
+                            <?php else: ?>
+                                <div>
+                                    <?= escape(
+                                        (string) (
+                                            $ticket['last_engineer_name']
+                                            ?? (
+                                                '人員 #'
+                                                . (int) $ticket['last_engineer_id']
+                                            )
+                                        )
+                                    ) ?>
+                                </div>
 
-                                <input
-                                    type="hidden"
-                                    name="action"
-                                    value="update_ticket_type"
-                                >
-
-                                <input
-                                    type="hidden"
-                                    name="ticket_id"
-                                    value="<?= $ticketId ?>"
-                                >
-
-                                <label
-                                    class="sr-only"
-                                    for="ticket_type_<?= $ticketId ?>"
-                                >
-                                    案件 #<?= $ticketId ?> 的單別
-                                </label>
-
-                                <select
-                                    id="ticket_type_<?= $ticketId ?>"
-                                    name="ticket_type"
-                                    required
-                                >
-                                    <option
-                                        value=""
-                                        disabled
-                                        <?= $selectedType === ''
-                                            ? 'selected'
-                                            : '' ?>
-                                    >
-                                        請選擇
-                                    </option>
-
-                                    <?php
-                                    foreach (
-                                        $ticketTypes as $value => $label
-                                    ):
-                                    ?>
-                                        <option
-                                            value="<?= escape($value) ?>"
-                                            <?= $selectedType === $value
-                                                ? 'selected'
-                                                : '' ?>
-                                        >
-                                            <?= escape($label) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-
-                                <button type="submit">
-                                    儲存
-                                </button>
-                            </form>
+                                <small class="hint">
+                                    <?= escape(
+                                        (string) $ticket['last_modified_at']
+                                    ) ?>
+                                </small>
+                            <?php endif; ?>
                         </td>
 
                         <td class="nowrap">

@@ -210,24 +210,11 @@ try {
         .nowrap {
             white-space: nowrap;
         }
-
-        .type-form {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        select,
+        
         button {
             padding: 9px 12px;
             font: inherit;
             border-radius: 6px;
-        }
-
-        select {
-            min-width: 115px;
-            border: 1px solid #c5ceda;
-            background: #fff;
         }
 
         button {
@@ -303,7 +290,7 @@ try {
 </head>
 <body>
 <main>
-    <h1>案件管理</h1>
+    <h1>報修案件管理</h1>
 
     <p class="intro">
         查看報修案件、目前單別與最後修改工程師。
@@ -458,9 +445,9 @@ try {
                         </td>
 
                         <td class="nowrap">
-                            <a href="ticket_detail.php?ticket_id=<?= $ticketId ?>">
+                            <button onclick="location.href='ticket_detail.php?ticket_id=<?= $ticketId ?>'" class="view-button" data-ticket-id="<?= $ticketId ?>">
                                 查看／處理
-                            </a>
+                            </button>
                         </td>
                     </tr>
                 <?php endforeach; ?>

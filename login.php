@@ -258,6 +258,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         a {
             color: #285ea8;
         }
+
+        .message {
+            margin: 20px 0;
+            padding: 14px;
+            border-radius: 6px;
+            line-height: 1.6;
+        }
+
+        .success {
+            color: #185c35;
+            background: #e7f6ec;
+        }
     </style>
 </head>
 <body>
@@ -267,6 +279,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <p class="intro">
         登入後可查看報修案件、設定單別與填寫處理紀錄。
     </p>
+
+    <?php if (($_GET['logged_out'] ?? '') === '1'): ?>
+        <div class="message success" role="status">
+            已登出，請重新登入。
+        </div>
+    <?php endif; ?>
 
     <?php if ($errors !== []): ?>
         <div class="error" role="alert">

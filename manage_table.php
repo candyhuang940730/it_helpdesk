@@ -5,15 +5,6 @@ require_once __DIR__ . '/includes/auth.php';
 
 $userId = requireEngineerLogin();
 
-/*
- * 正式使用前，在這裡接上工程師登入驗證。
- *
- * 必須由伺服器確認使用者已登入，
- * 不能只靠隱藏連結或按鈕限制存取。
- */
-
-
-
 $ticketTypes = [
     'repair' => '報修',
     'maintenance' => '保養',
@@ -281,6 +272,33 @@ try {
             white-space: nowrap;
             border: 0;
         }
+
+        .toolbar-actions {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .logout-form {
+            margin: 0;
+        }
+
+        .logout-button {
+            width: auto;
+            margin: 0;
+            padding: 9px 16px;
+            color: #fff;
+            font: inherit;
+            background: #a83232;
+            border: 0;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        .logout-button:hover {
+            background: #872828;
+        }
     </style>
 </head>
 <body>
@@ -313,7 +331,32 @@ try {
             顯示最近 <?= count($tickets) ?> 筆案件，最多 100 筆。
         </span>
 
-        <a href="ticket_create.php">新增報修單</a>
+        <div class="toolbar-actions">
+            <span>
+                工程師：
+                <?= escape(
+                    (string) ($_SESSION['name'] ?? '未提供姓名')
+                ) ?>
+            </span>
+
+            <a href="ticket_create.php">新增報修單</a>
+
+            <form
+                action="logout.php"
+                method="post"
+                class="logout-form"
+            >
+                <input
+                    type="hidden"
+                    name="csrf_token"
+                    value="<?= escape($_SESSION['csrf_token']) ?>"
+                >
+
+                <button type="submit" class="logout-button">
+                    登出
+                </button>
+            </form>
+        </div>
     </div>
 
     <div class="table-wrap">

@@ -14,12 +14,6 @@ if ($ticketId === null) {
     exit('案件編號格式不正確。');
 }
 
-/*
- * 登入保護
- *
- * 本範例約定：登入成功後，user_id 代表工程師帳號。
- * 若未來同時有客戶帳號，這裡還需要驗證帳號類型。
- */
 $engineerId = positiveInteger(
     $_SESSION['user_id'] ?? null
 );
@@ -528,10 +522,10 @@ $categoryLabel = $categories[$ticket['category']]
 </head>
 <body>
 <main>
-    <a class="back" href="manage_table.php">
+    <button onclick="location.href='manage_table.php'" class="back">
         ← 返回案件列表
-    </a>
-
+    </button>
+    
     <?php if (is_string($successMessage)): ?>
         <div class="message success" role="status">
             <?= escape($successMessage) ?>

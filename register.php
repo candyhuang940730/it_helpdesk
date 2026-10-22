@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-session_start();
+require_once __DIR__ . '/includes/bootstrap.php';
 
 /*
  * 僅供本機開發／展示的註冊設定。
@@ -15,26 +15,6 @@ session_start();
  */
 const REGISTRATION_ENABLED = true;
 const ENGINEER_REGISTRATION_CODE = 'e8143683d9217a65f26593eee1330ce194bdc53c59d4c436';
-
-function escape(string $value): string
-{
-    return htmlspecialchars(
-        $value,
-        ENT_QUOTES | ENT_SUBSTITUTE,
-        'UTF-8'
-    );
-}
-
-function postString(string $key, bool $trim = true): string
-{
-    $value = $_POST[$key] ?? '';
-
-    if (!is_string($value)) {
-        return '';
-    }
-
-    return $trim ? trim($value) : $value;
-}
 
 /*
  * 預設拒絕註冊。

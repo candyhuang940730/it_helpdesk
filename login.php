@@ -1,27 +1,7 @@
 <?php
 declare(strict_types=1);
 
-session_start();
-
-function escape(string $value): string
-{
-    return htmlspecialchars(
-        $value,
-        ENT_QUOTES | ENT_SUBSTITUTE,
-        'UTF-8'
-    );
-}
-
-function postString(string $key, bool $trim = true): string
-{
-    $value = $_POST[$key] ?? '';
-
-    if (!is_string($value)) {
-        return '';
-    }
-
-    return $trim ? trim($value) : $value;
-}
+require_once __DIR__ . '/includes/bootstrap.php';
 
 $email = '';
 $errors = [];

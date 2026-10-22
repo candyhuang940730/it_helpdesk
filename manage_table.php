@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 
-session_start();
+require_once __DIR__ . '/includes/auth.php';
+
+$userId = requireEngineerLogin();
 
 /*
  * 正式使用前，在這裡接上工程師登入驗證。
@@ -10,14 +12,7 @@ session_start();
  * 不能只靠隱藏連結或按鈕限制存取。
  */
 
-function escape(string $value): string
-{
-    return htmlspecialchars(
-        $value,
-        ENT_QUOTES | ENT_SUBSTITUTE,
-        'UTF-8'
-    );
-}
+
 
 $ticketTypes = [
     'repair' => '報修',

@@ -1,46 +1,17 @@
 <?php
 declare(strict_types=1);
 
-session_start();
+require_once __DIR__ . '/includes/auth.php';
 
-function escape(string $value): string
-{
-    return htmlspecialchars(
-        $value,
-        ENT_QUOTES | ENT_SUBSTITUTE,
-        'UTF-8'
-    );
-}
+$engineerId = requireEngineerLogin();
 
-function postString(string $key): string
-{
-    $value = $_POST[$key] ?? '';
+$ticketId = positiveInteger(
+    $_GET['ticket_id'] ?? null
+);
 
-    return is_string($value) ? trim($value) : '';
-}
-
-function positiveInteger(mixed $value): ?int
-{
-    if (!is_string($value) && !is_int($value)) {
-        return null;
-    }
-
-    $result = filter_var(
-        $value,
-        FILTER_VALIDATE_INT,
-        ['options' => ['min_range' => 1]]
-    );
-
-    return $result === false ? null : (int) $result;
-}
-
-function displayValue(mixed $value): string
-{
-    if ($value === null || $value === '') {
-        return '未填寫';
-    }
-
-    return (string) $value;
+if ($ticketId === null) {
+    http_response_code(400);
+    exit('案件編號格式不正確。');
 }
 
 /*
